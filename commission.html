@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Commission Calculator</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #dff2ff 0%, #b6dcff 100%);
+    color: #043b5c;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 30px 15px;
+}
+
+.card {
+    width: 100%;
+    max-width: 620px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(18px);
+    border-radius: 24px;
+    padding: 32px 30px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.12);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 26px;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.row2 {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+input {
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 2px solid rgba(160,200,255,0.6);
+    font-size: 15px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #3b8dff;
+}
+
+.error-input {
+    background: rgba(255,180,180,0.35);
+    border-color: rgba(255,80,80,0.75);
+}
+
+.btn-group {
+    display: flex;
+    gap: 18px;
+    margin: 24px 0 18px;
+}
+
+button {
+    flex: 1;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    color: white;
+}
+
+.calculate {
+    background: linear-gradient(45deg, #0091ff, #006eff);
+}
+
+.reset {
+    background: linear-gradient(45deg, #63d1ff, #36aaff);
+}
+
+table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.75);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 3px solid rgba(120,160,220,0.85);
+    display: none;
+}
+
+th, td {
+    padding: 14px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+th {
+    background: rgba(160,210,255,0.55);
+}
+
+#totalsBox, #logBox {
+    margin-top: 18px;
+    padding: 14px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 14px;
+    border: 3px solid rgba(120,160,220,0.85);
+    display: none;
+    font-size: 14px;
+}
+
+#logBox {
+    max-height: 320px;
+    overflow-y: auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h1>Commission Calculator</h1>
+
+<div class="row2">
+    <div class="input-group">
+        <label>Employee Name</label>
+        <input id="empName">
+    </div>
+    <div class="input-group">
+        <label>Employee ID</label>
+        <input id="empID">
+    </div>
+</div>
+
+<div class="input-group">
+    <label>Locks (1–70)</label>
+    <input type="number" id="locks">
+</div>
+
+<div class="input-group">
+    <label>Stocks (1–80)</label>
+    <input type="number" id="stocks">
+</div>
+
+<div class="input-group">
+    <label>Barrels (1–90)</label>
+    <input type="number" id="barrels">
+</div>
+
+<div class="btn-group">
+    <button class="calculate" onclick="calculate()">Calculate</button>
+    <button class="reset" onclick="resetForm()">Reset</button>
+</div>
+
+<table id="resultTable">
+<tr>
+    <th>Test Case</th>
+    <th>Total Sales</th>
+    <th>Commission</th>
+</tr>
+<tr>
+    <td id="caseCell"></td>
+    <td id="salesCell"></td>
+    <td id="commissionCell"></td>
+</tr>
+</table>
+
+<div id="totalsBox">
+    Total Sales: <b><span id="totalSalesText">0</span></b><br>
+    Total Commission: <b><span id="totalCommissionText">0</span></b>
+</div>
+
+<div id="logBox"></div>
+</div>
+
+<script>
+// ===== Global Variables =====
+let testCase = 0;
+let sumSales = 0;
+let sumCommission = 0;
+let logEntries = "";
+
+// ===== Element References =====
+const empNameEl = document.getElementById("empName");
+const empIDEl = document.getElementById("empID");
+const locksEl = document.getElementById("locks");
+const stocksEl = document.getElementById("stocks");
+const barrelsEl = document.getElementById("barrels");
+
+const resultTable = document.getElementById("resultTable");
+const caseCell = document.getElementById("caseCell");
+const salesCell = document.getElementById("salesCell");
+const commissionCell = document.getElementById("commissionCell");
+
+const totalsBox = document.getElementById("totalsBox");
+const totalSalesText = document.getElementById("totalSalesText");
+const totalCommissionText = document.getElementById("totalCommissionText");
+
+const logBox = document.getElementById("logBox");
+
+// ===== Utility Functions =====
+function clearErrors() {
+    document.querySelectorAll("input").forEach(el =>
+        el.classList.remove("error-input")
+    );
+}
+
+function validateInput(empName, empID, locks, stocks, barrels) {
+    let error = false;
+
+    const markError = el => {
+        el.classList.add("error-input");
+        error = true;
+    };
+
+    if (!empName) markError(empNameEl);
+    if (!empID) markError(empIDEl);
+    if (!(locks >= 1 && locks <= 70)) markError(locksEl);
+    if (!(stocks >= 1 && stocks <= 80)) markError(stocksEl);
+    if (!(barrels >= 1 && barrels <= 90)) markError(barrelsEl);
+
+    return !error;
+}
+
+function calculateSales(locks, stocks, barrels) {
+    return (locks * 45) + (stocks * 30) + (barrels * 25);
+}
+
+function calculateCommission(sales) {
+    let commission = 0;
+
+    if (sales <= 1000) {
+        commission = sales * 0.10;
+    } else if (sales <= 1800) {
+        commission = 1000 * 0.10 + (sales - 1000) * 0.15;
+    } else {
+        commission = 1000 * 0.10 + 800 * 0.15 + (sales - 1800) * 0.20;
+    }
+
+    return commission;
+}
+
+// ===== Main Function =====
+function calculate() {
+    clearErrors();
+
+    const empName = empNameEl.value.trim();
+    const empID = empIDEl.value.trim();
+    const locks = parseInt(locksEl.value);
+    const stocks = parseInt(stocksEl.value);
+    const barrels = parseInt(barrelsEl.value);
+
+    const isValid = validateInput(empName, empID, locks, stocks, barrels);
+
+    resultTable.style.display = "table";
+
+    if (!isValid) {
+        caseCell.innerText = "---";
+        salesCell.innerText = "---";
+        commissionCell.innerText = "---";
+    } else {
+        testCase++;
+
+        const sales = calculateSales(locks, stocks, barrels);
+        const commission = calculateCommission(sales);
+
+        caseCell.innerText = `Test Case #${testCase}`;
+        salesCell.innerText = sales.toFixed(2);
+        commissionCell.innerText = commission.toFixed(2);
+
+        sumSales += sales;
+        sumCommission += commission;
+
+        totalsBox.style.display = "block";
+        totalSalesText.innerText = sumSales.toFixed(2);
+        totalCommissionText.innerText = sumCommission.toFixed(2);
+
+        logEntries =
+        `<b>Test Case #${testCase}</b><br>
+         Name: ${empName} | ID: ${empID}<br>
+         Locks: ${locks}, Stocks: ${stocks}, Barrels: ${barrels}<br>
+         Sales: ${sales.toFixed(2)} | Commission: ${commission.toFixed(2)}
+         <hr>` + logEntries;
+    }
+
+    logBox.style.display = "block";
+    logBox.innerHTML = logEntries;
+}
+
+function resetForm() {
+    clearErrors();
+    document.querySelectorAll("input").forEach(el => el.value = "");
+    resultTable.style.display = "none";
+    totalsBox.style.display = "none";
+}
+</script>
+
+</body>
+</html>
